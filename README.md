@@ -33,7 +33,7 @@ This is a modern, responsive, and animated Drawing Board built using HTML, CSS, 
 1. **Clone the repo**
 
    ```bash
-   git clone https://github.com/yourusername/drawing-board.git
+   git clone https://github.com/harsh-singh-9326/drawing-board.git
    ```
 2. **Open `index.html` in your browser**
 
