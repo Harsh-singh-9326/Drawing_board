@@ -1,35 +1,104 @@
-const canvas = document.getElementById("canvas")
-const ctx = canvas.getContext("2d")
+const canvasContainer = document.getElementById("canvas");
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
 
-let path = []
-let redostack = []
-let drawing = false
-let current_tool = "pencil"
-let  current_color = "#00000"
-let brush_size = "5"
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight - 100;
+canvas.style.backgroundColor = "#fff";
+canvas.style.cursor = "crosshair";
 
-function canvasetup (){
-    const rect = canvas.getBoundingClientRect()
-    const dpi = window.devicePixelRatio;
+canvasContainer.appendChild(canvas);
 
-    canvas.height = rect.height*dpi;
-    canvas.weight = rect.width*dpi;
+// Tools
+const pencilButton = document.getElementById("pencilbutton");
+const eraserButton = document.getElementById("eraserbutton");
+const undoButton = document.getElementById("undobutton");
+const redoButton = document.getElementById("redobutton");
+const clearButton = document.getElementById("clear_allbutton");
+const colorPicker = document.getElementById("colorpicker");
+const range = document.getElementById("range");
+
+// Drawing States
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+let strokeColor = "#000000";
+let strokeWidth = 5;
+let isEraser = false;
+
+const undoStack = [];
+const redoStack = [];
+
+function startDraw(e) {
+    isDrawing = true;
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+    saveState(undoStack);
+    redoStack.length = 0;
 }
-canvasetup()
 
-document.addEventListener('DOMContentLoaded', (event)=>{
-    document.getElementById('pencilbutton').addEventListener("click", ()=>setactivateto())
-    document.getElementById('eraserbutton').addEventListener("click", ()=>setactivateto())
-    document.getElementById('undobutton').addEventListener("click", ()=>undolastbutton())
-    document.getElementById('redobutton').addEventListener("click", ()=>redolastbutton())
-    document.getElementById('clear_allbutton').addEventListener("click", ()=>clear_allbutton())
-    document.getElementById('colorpicker').addEventListener("onChange",(e)=>{
-        color_picker = e.target.value
-    })
-    document.getElementById('range').addEventListener("input",(e)=>{
-        brush_size = e.target.value
-    })
-    canvas.addEventListener("mouseup",stopdrawing)
-    canvas.addEventListener("mousedown",startdrawing)
-    canvas.addEventListener("mousemove",draw)
-})
+function draw(e) {
+    if (!isDrawing) return;
+    ctx.strokeStyle = isEraser ? "#ffffff" : strokeColor;
+    ctx.lineWidth = strokeWidth;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+}
+
+function stopDraw() {
+    isDrawing = false;
+}
+
+// Events
+canvas.addEventListener("mousedown", startDraw);
+canvas.addEventListener("mousemove", draw);
+canvas.addEventListener("mouseup", stopDraw);
+canvas.addEventListener("mouseout", stopDraw);
+
+pencilButton.addEventListener("click", () => {
+    isEraser = false;
+});
+
+eraserButton.addEventListener("click", () => {
+    isEraser = true;
+});
+
+colorPicker.addEventListener("input", (e) => {
+    strokeColor = e.target.value;
+});
+
+range.addEventListener("input", (e) => {
+    strokeWidth = e.target.value;
+});
+
+clearButton.addEventListener("click", () => {
+    saveState(undoStack);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    redoStack.length = 0;
+});
+
+undoButton.addEventListener("click", () => {
+    if (undoStack.length > 0) {
+        saveState(redoStack);
+        const imgData = undoStack.pop();
+        ctx.putImageData(imgData, 0, 0);
+    }
+});
+
+redoButton.addEventListener("click", () => {
+    if (redoStack.length > 0) {
+        saveState(undoStack);
+        const imgData = redoStack.pop();
+        ctx.putImageData(imgData, 0, 0);
+    }
+});
+
+function saveState(stack) {
+    stack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+}
